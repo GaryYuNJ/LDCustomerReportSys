@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ld.common.dao.SalesReportMapper" >
+  
+  <resultMap id="BaseResultMap" type="com.ld.saleseport.bo.SalesReportBo" >
+  </resultMap>
+  
+  <!-- 一：诚意金台账报表 start -->
+  <sql id="earnest_money_rpt_select_sql" >
+	    select t4.name project_name, t2.erp_name, t1.pay_time, t2.customer_name,
+		t5.code, t6.pay_amount, t1.convert_house_amount, t1.refund_time, t1.remain_amount
+  </sql>
+  
+  <sql id="earnest_money_rpt_count_sql" >
+        select t1.id  
+  </sql>
+  
+  <sql id="earnest_money_rpt_join_sql" >
+        from earnest_money t1 
+		left join house t2 on t1.house_id = t2.id
+		left join building t3 on t2.building_id = t3.id
+		left join project t4 on t3.project_id = t4.id
+		left join receipt_invoice_data t5 on t1.house_id = t5.house_id
+		left join money_pay_detail t6 on t5.pay_detail_id = t6.id 
+  </sql>
+  
+  <sql id="earnest_money_rpt_limit_sql">
+  	   <if test="page_sql != null and page_sql != ''">
+      	${page_sql}
+      </if>
+  </sql>
+  
+  <sql id="earnest_money_rpt_where_sql">
+      where 1=1 
+	  <if test="userId != null" >
+          and t1.update_user = #{userId,jdbcType=BIGINT}
+      </if>
+	  <if test="cityCompanyId != null" >
+          and t4.city_company_id = #{cityCompanyId,jdbcType=BIGINT}
+      </if>
+	  <if test="id != null" >
+          and t4.id = #{id,jdbcType=BIGINT}  
+      </if>
+      <if test="dateStr != null" >
+          and date_format(t1.pay_time, '%Y-%m-%d') = #{dateStr,jdbcType=VARCHAR}  
+      </if>
+      order by t1.pay_time desc
+  </sql>
+  
+  <select id="find_all_earnest_money_rpt" resultMap="BaseResultMap" >
+  	 <include refid="earnest_money_rpt_select_sql" />
+  	 <include refid="earnest_money_rpt_join_sql" />
+     <include refid="earnest_money_rpt_where_sql"/>
+     <include refid="earnest_money_rpt_limit_sql" />
+  </select>
+  <select id="find_count_earnest_money_rpt" resultMap="BaseResultMap" >
+ 	 select count(1) from (
+ 	   <include refid="earnest_money_rpt_count_sql" />
+ 	   <include refid="earnest_money_rpt_join_sql" />
+	   <include refid="earnest_money_rpt_where_sql"/>
+	 ) as tab 
+  </select>  
+  
+  <select id="findAllTableEarnestMoneyRpt" resultType="com.ld.saleseport.bo.SalesReportBo">
+  	 <include refid="earnest_money_rpt_select_sql" />
+  	 <include refid="earnest_money_rpt_join_sql" />
+     <include refid="earnest_money_rpt_where_sql"/>
+  </select>
+  
+  <!-- 一：诚意金台账报表 end -->
+  
+  
+  
+  
+  
+  <!-- 二：收款日报表 start -->
+  <sql id="money_pay_rpt_select_sql" >
+	    select t1.pay_time, t5.name project_name, t4.name building_name, t3.erp_name,  t1.receipt_name, 
+	    t6.name money_type_name, 
+	    case when t1.pay_type = 1 then '现金' when t1.pay_type = 2 then 'POS' when t1.pay_type = 3 then '银行转账' else ''
+        end as pay_type, t1.pay_amount
+  </sql>
+  
+  <sql id="money_pay_rpt_count_sql" >
+        select t1.id  
+  </sql>
+  
+  <sql id="money_pay_rpt_join_sql" >
+        from money_pay_detail t1 
+		left join contract_money t2 on t1.contract_money_id = t2.id
+		left join house t3 on t2.house_id = t3.id
+		left join building t4 on t3.building_id = t4.id
+		left join project t5 on t4.project_id = t5.id
+		left join money_type t6 on t1.money_type_id = t6.id
+  </sql>
+  
+  <sql id="money_pay_rpt_limit_sql">
+  	   <if test="page_sql != null and page_sql != ''">
+      	${page_sql}
+      </if>
+  </sql>
+  
+  <sql id="money_pay_rpt_where_sql">
+      where 1=1 
+	  <if test="userId != null" >
+          and t1.update_user = #{userId,jdbcType=BIGINT}
+      </if>
+	  <if test="cityCompanyId != null" >
+          and t5.city_company_id = #{cityCompanyId,jdbcType=BIGINT}
+      </if>
+	  <if test="id != null" >
+          and t5.id = #{id,jdbcType=BIGINT}  
+      </if>
+      <if test="dateStr != null" >
+          and date_format(t1.pay_time, '%Y-%m-%d') = #{dateStr,jdbcType=VARCHAR}  
+      </if>
+      order by t1.pay_time desc
+  </sql>
+  
+  <select id="find_all_money_pay_rpt" resultMap="BaseResultMap" >
+  	 <include refid="money_pay_rpt_select_sql" />
+  	 <include refid="money_pay_rpt_join_sql" />
+     <include refid="money_pay_rpt_where_sql"/>
+     <include refid="money_pay_rpt_limit_sql" />
+  </select>
+  <select id="find_count_money_pay_rpt" resultMap="BaseResultMap" >
+ 	 select count(1) from (
+ 	   <include refid="money_pay_rpt_count_sql" />
+ 	   <include refid="money_pay_rpt_join_sql" />
+	   <include refid="money_pay_rpt_where_sql"/>
+	 ) as tab 
+  </select>  
+  
+  <select id="findAllTableMoneyPayRpt" resultType="com.ld.saleseport.bo.SalesReportBo">
+  	 <include refid="money_pay_rpt_select_sql" />
+  	 <include refid="money_pay_rpt_join_sql" />
+     <include refid="money_pay_rpt_where_sql"/>
+  </select>
+  
+  <!-- 二：收款日报表 end -->
+  
+  
+  
+  
+  
+  <!-- 三：应收款报表 start -->
+  <sql id="receivable_money_rpt_select_sql" >
+	    select t4.name project_name, t2.erp_name, t2.customer_name, t1.receivables_time, t7.name money_type_name,
+		t5.total_price, t6.pay_amount, t1.amount, t1.overdue_reason_id, 
+		case when t1.is_recover_available = 0 then '不能' else '可以' end as is_recover_available,
+		t1.expect_recover_date, t1.overdue_extend_remark, 
+		CONCAT(date_format(receivables_time, '%Y-%m-%d')  ,'~', CURRENT_DATE()) overdue_time
+  </sql>
+  
+  <sql id="receivable_money_rpt_count_sql" >
+        select t1.id 
+  </sql>
+  
+  <sql id="receivable_money_rpt_join_sql" >
+        from contract_money t1 
+		left join house t2 on t1.house_id = t2.id
+		left join building t3 on t2.building_id = t3.id
+		left join project t4 on t3.project_id = t4.id
+		left join house_contract t5 on t1.house_id = t5.house_id
+		left join money_pay_detail t6 on t1.id = t6.contract_money_id
+		left join money_type t7 on t1.money_type_id = t7.id
+  </sql>
+  
+  <sql id="receivable_money_rpt_limit_sql">
+  	   <if test="page_sql != null and page_sql != ''">
+      	${page_sql}
+      </if>
+  </sql>
+  
+  <sql id="receivable_money_rpt_where_sql">
+      where 1=1 
+	  <if test="userId != null" >
+          and t1.update_user = #{userId,jdbcType=BIGINT}
+      </if>
+	  <if test="cityCompanyId != null" >
+          and t4.city_company_id = #{cityCompanyId,jdbcType=BIGINT}
+      </if>
+	  <if test="id != null" >
+          and t4.id = #{id,jdbcType=BIGINT}  
+      </if>
+      <if test="dateStr != null" >
+          and date_format(t1.receivables_time, '%Y-%m-%d') = #{dateStr,jdbcType=VARCHAR}  
+      </if>
+      order by t1.receivables_time desc
+  </sql>
+  
+  <select id="find_all_receivable_money_rpt" resultMap="BaseResultMap" >
+  	 <include refid="receivable_money_rpt_select_sql" />
+  	 <include refid="receivable_money_rpt_join_sql" />
+     <include refid="receivable_money_rpt_where_sql"/>
+     <include refid="receivable_money_rpt_limit_sql" />
+  </select>
+  <select id="find_count_receivable_money_rpt" resultMap="BaseResultMap" >
+ 	 select count(1) from (
+ 	   <include refid="receivable_money_rpt_count_sql" />
+ 	   <include refid="receivable_money_rpt_join_sql" />
+	   <include refid="receivable_money_rpt_where_sql"/>
+	 ) as tab 
+  </select>  
+  
+  <select id="findAllTableReceivableMoneyRpt" resultType="com.ld.saleseport.bo.SalesReportBo">
+  	 <include refid="receivable_money_rpt_select_sql" />
+  	 <include refid="receivable_money_rpt_join_sql" />
+     <include refid="receivable_money_rpt_where_sql"/>
+  </select>
+  
+  <!-- 三：应收款报表 end -->
+  
+  
+  
+  
+  
+  
+  <!-- 四：收入结账报表 start -->
+  <sql id="income_bill_rpt_select_sql" >
+	    select t3.name project_name, t1.erp_name, t1.customer_name, t1.real_size,t4.unit_price, t4.total_price, 
+        case when t1.deliver_house_invoice_code = null then '否' when t1.deliver_house_invoice_code = '' then '否' 
+        else '是' end as deliver_house_invoice_code,
+        case when t5.is_paid_added_tax = 0 then '未缴纳' else '已缴纳' end as is_paid_added_tax, 
+        t1.carry_forward_cost_unit_price
+  </sql>
+  
+  <sql id="income_bill_rpt_count_sql" >
+        select t1.id 
+  </sql>
+  
+  <sql id="income_bill_rpt_join_sql" >
+        from house t1
+		left join building t2 on t1.building_id = t2.id
+		left join project t3 on t2.project_id = t3.id
+		left join house_contract t4 on t1.id = t4.house_id
+		left join receipt_invoice_data t5 on t1.id = t5.house_id
+  </sql>
+  
+  <sql id="income_bill_rpt_limit_sql">
+  	   <if test="page_sql != null and page_sql != ''">
+      	${page_sql}
+      </if>
+  </sql>
+  
+  <sql id="income_bill_rpt_where_sql">
+      where 1=1 
+	  <if test="userId != null" >
+          and t1.update_user = #{userId,jdbcType=BIGINT}
+      </if>
+	  <if test="cityCompanyId != null" >
+          and t3.city_company_id = #{cityCompanyId,jdbcType=BIGINT}
+      </if>
+	  <if test="id != null" >
+          and t3.id = #{id,jdbcType=BIGINT}  
+      </if>
+      <if test="dateStr != null" >
+          and date_format(t1.update_time, '%Y-%m-%d') = #{dateStr,jdbcType=VARCHAR}  
+      </if>
+      order by t1.update_time desc
+  </sql>
+  
+  <select id="find_all_income_bill_rpt" resultMap="BaseResultMap" >
+  	 <include refid="income_bill_rpt_select_sql" />
+  	 <include refid="income_bill_rpt_join_sql" />
+     <include refid="income_bill_rpt_where_sql"/>
+     <include refid="income_bill_rpt_limit_sql" />
+  </select>
+  <select id="find_count_income_bill_rpt" resultMap="BaseResultMap" >
+ 	 select count(1) from (
+ 	   <include refid="income_bill_rpt_count_sql" />
+ 	   <include refid="income_bill_rpt_join_sql" />
+	   <include refid="income_bill_rpt_where_sql"/>
+	 ) as tab 
+  </select>  
+  
+  <select id="findAllTableIncomeBillRpt" resultType="com.ld.saleseport.bo.SalesReportBo">
+  	 <include refid="income_bill_rpt_select_sql" />
+  	 <include refid="income_bill_rpt_join_sql" />
+     <include refid="income_bill_rpt_where_sql"/>
+  </select>
+  
+  <!-- 四：收入结账报表 end -->
+  
+  
+  
+  
+  
+  
+  <!-- 五：开票情况报表 start -->
+  <sql id="invoice_bill_rpt_select_sql" >
+	    select t5.name project_name, t3.erp_name, t1.invoice_time, 
+	    case when t1.type = 1 then '收据' when t1.type = 2 then '普票' when t1.type = 3 then '专票' else '' end as type,
+	    t1.code, t2.pay_amount, t6.name money_type_name, 
+	    case when t1.is_paid_added_tax = 0 then '未缴纳' else '已缴纳' end as is_paid_added_tax, 
+		case when t1.isvalid = 1 then '有效' else '无效' end as isvalid
+  </sql>
+  
+  <sql id="invoice_bill_rpt_count_sql" >
+        select t5.name 
+  </sql>
+  
+  <sql id="invoice_bill_rpt_join_sql" >
+        from receipt_invoice_data t1 
+		left join money_pay_detail t2 on t1.pay_detail_id = t2.id
+		left join house t3 on t1.house_id = t3.id
+		left join building t4 on t3.building_id = t4.id
+		left join project t5 on t4.project_id = t5.id
+		left join money_type t6 on t1.money_type_id = t6.id
+  </sql>
+  
+  <sql id="invoice_bill_rpt_limit_sql">
+  	   <if test="page_sql != null and page_sql != ''">
+      	${page_sql}
+      </if>
+  </sql>
+  
+  <sql id="invoice_bill_rpt_where_sql">
+      where 1=1 
+	  <if test="userId != null" >
+          and t1.update_user = #{userId,jdbcType=BIGINT}
+      </if>
+	  <if test="cityCompanyId != null" >
+          and t5.city_company_id = #{cityCompanyId,jdbcType=BIGINT}
+      </if>
+	  <if test="id != null" >
+          and t5.id = #{id,jdbcType=BIGINT}  
+      </if>
+      <if test="dateStr != null" >
+          and date_format(t1.invoice_time, '%Y-%m-%d') = #{dateStr,jdbcType=VARCHAR}  
+      </if>
+      order by t1.invoice_time desc
+  </sql>
+  
+  <select id="find_all_invoice_bill_rpt" resultMap="BaseResultMap" >
+  	 <include refid="invoice_bill_rpt_select_sql" />
+  	 <include refid="invoice_bill_rpt_join_sql" />
+     <include refid="invoice_bill_rpt_where_sql"/>
+     <include refid="invoice_bill_rpt_limit_sql" />
+  </select>
+  <select id="find_count_invoice_bill_rpt" resultMap="BaseResultMap" >
+ 	 select count(1) from (
+ 	   <include refid="invoice_bill_rpt_count_sql" />
+ 	   <include refid="invoice_bill_rpt_join_sql" />
+	   <include refid="invoice_bill_rpt_where_sql"/>
+	 ) as tab 
+  </select>  
+  
+  <select id="findAllTableInvoiceBillRpt" resultType="com.ld.saleseport.bo.SalesReportBo">
+  	 <include refid="invoice_bill_rpt_select_sql" />
+  	 <include refid="invoice_bill_rpt_join_sql" />
+     <include refid="invoice_bill_rpt_where_sql"/>
+  </select>
+  
+  <!-- 五：开票情况报表 end -->
+  
+  
+</mapper>

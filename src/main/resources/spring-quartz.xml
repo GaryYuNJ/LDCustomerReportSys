@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-4.0.xsd
+	http://www.springframework.org/schema/mvc
+	http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+	">
+
+	 <bean id="companyBalanceDataSyncJob" class="com.ld.common.job.CompanyBalanceDataSyncJob" />
+     
+     <bean id="clearAnnualQuartz" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+          <property name="targetObject" ref="companyBalanceDataSyncJob"/>
+          <property name="targetMethod" value="balanceDataSync"/><!--定时任务执行方法名  -->
+          <property name="concurrent" value="false"/>
+      </bean>
+      
+     <bean id="clearTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean" >
+           <property name="jobDetail" ref="clearAnnualQuartz"/>
+           <property name="cronExpression">
+                <value>0 05 0 * * ?</value>
+           </property>
+       </bean>
+
+	<bean id="myScheduler"
+		class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+              <list>
+				<ref bean="clearTrigger"></ref>
+			   </list>
+          </property>
+	</bean>
+	
+</beans>

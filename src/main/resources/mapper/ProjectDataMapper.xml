@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ld.common.dao.ProjectDataMapper" >
+  <resultMap id="BaseResultMap" type="com.ld.saleseport.bo.HouseBo" >
+    <id column="id" property="id" jdbcType="BIGINT" />
+  </resultMap>
+  
+  <sql id="base_all_select_sql" >
+      select t1.id, t1.name, t1.erp_code, t2.name city_company_name, t3.name project_company_name,
+      t1.sale_start_time, t1.saled_ratio, t1.accepted_ratio,
+      
+      t1.city_company_id, t1.project_company_id,
+	  (select u.nickname from u_user u where t1.update_user = u.id) update_user_name,t1.update_time, t1.remark
+	
+  </sql>
+  
+  <sql id="base_count_select_sql" >
+      select t1.id 
+  </sql>
+  
+  <sql id="base_join_sql" >
+      from project t1 
+      left join city_company t2 on t1.city_company_id = t2.id 
+      left join project_company t3 on t1.project_company_id = t3.id
+      left join user_project_rel t4 on t1.id = t4.project_id  
+  </sql>
+  
+  <sql id="limit_sql">
+  	   <if test="page_sql != null and page_sql != ''">
+      	${page_sql}
+      </if>
+  </sql>
+  
+  <sql id="where_all">
+      where 1=1 
+	  <if test="userId != null" >
+          and t1.update_user = #{userId,jdbcType=BIGINT}
+      </if>
+      <if test="id != null" >
+          and t1.id = #{id,jdbcType=BIGINT}
+      </if>
+      <if test="cityCompanyId != null" >
+          and t1.city_company_id = #{cityCompanyId,jdbcType=BIGINT}
+      </if>
+      order by t1.update_time desc 
+  </sql>
+  
+  <select id="findAll" resultMap="BaseResultMap" >
+  	 <include refid="base_all_select_sql" />
+  	 <include refid="base_join_sql" />
+     <include refid="where_all"/>
+     <include refid="limit_sql" />
+  </select>
+  <select id="findCount" resultMap="BaseResultMap" >
+ 	 select count(1) from (
+ 	   <include refid="base_count_select_sql" />
+ 	   <include refid="base_join_sql" />
+	   <include refid="where_all"/>
+	 ) as tab 
+  </select>
+  
+  
+  <!-- 修改项目信息-->
+  <update id="updateProjectMsgById" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update project t set 
+  	t.name = #{name,jdbcType=VARCHAR}, t.erp_code = #{erp_code,jdbcType=VARCHAR},
+    t.city_company_id = #{city_company_id,jdbcType=BIGINT}, t.project_company_id = #{project_company_id,jdbcType=BIGINT},
+    <if test="sale_start_time != null and sale_start_time != ''" >
+          t.sale_start_time = #{sale_start_time,jdbcType=VARCHAR},
+    </if>
+    t.saled_ratio = #{saled_ratio,jdbcType=DECIMAL},t.accepted_ratio = #{accepted_ratio,jdbcType=DECIMAL},
+    t.remark = #{remark,jdbcType=VARCHAR},
+    t.update_user = #{userId,jdbcType=BIGINT}, t.update_time = #{dateStr,jdbcType=VARCHAR} 
+    where t.id = #{id,jdbcType=BIGINT} 
+  </update>
+  
+</mapper>

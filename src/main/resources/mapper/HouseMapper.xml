@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ld.common.dao.HouseMapper" >
+  <resultMap id="BaseResultMap" type="com.ld.saleseport.bo.HouseBo" >
+    <id column="id" property="id" jdbcType="BIGINT" />
+    <result column="projectName" property="projectName" jdbcType="VARCHAR" />
+    <result column="projectPhase" property="projectPhase" jdbcType="VARCHAR" />
+    <result column="buildName" property="buildName" jdbcType="VARCHAR" />
+    <result column="erpName" property="erpName" jdbcType="VARCHAR" />
+    <result column="houseTypeName" property="houseTypeName" jdbcType="VARCHAR" />
+    <result column="houseConsultant" property="houseConsultant" jdbcType="VARCHAR" />
+    <result column="customerName" property="customerName" jdbcType="VARCHAR" />
+    <result column="houseBusinessTypeName" property="houseBusinessTypeName" jdbcType="VARCHAR" />
+    <result column="houseStatusName" property="houseStatusName" jdbcType="VARCHAR" />
+  </resultMap>
+  
+  <sql id="base_all_select_sql" >
+      select t1.id,t3.name projectName,t2.project_phase projectPhase,t2.name buildName,t1.erp_name erpName,
+      t4.name houseTypeName, t8.nickname houseConsultant, t1.customer_name customerName,
+      t5.name houseBusinessTypeName,t6.name houseStatusName,   
+      
+    t2.project_id,  
+    t2.project_phase,
+	t1.type_id,
+	t1.building_id,
+	t1.status_id,
+	t1.sale_type_id,
+	t1.business_type_id,
+	t1.business_sub_type_id,
+	t1.erp_code,
+	t1.erp_name,
+	t1.erp_sale_code,
+	t1.customer_code,
+	t1.customer_name,
+	t1.customer_mobile,
+	t1.customer_number,
+	t1.pre_size,
+	t1.real_size,
+	t1.is_carry_forward,
+	t1.carry_forward_income,
+	t1.carry_forward_cost_unit_price,
+	t1.deliver_house_invoice_amount,
+	t1.deliver_house_invoice_code,
+	t1.is_change_name,
+	t1.dimission_payoff_time,
+	t1.dimission_remark,
+	t1.remark,
+	t1.extra_dimission_ratio,
+	t1.extra_dimission_ratio_remark,
+	t1.commission_calcu_type_id,
+	t1.overdue_remark,
+	t1.create_time,
+	t1.update_time,
+	(select u.nickname from u_user u where t1.update_user = u.id) update_user_name,
+	t1.is_large_amount
+	  
+      
+  </sql>
+  
+  <sql id="base_count_select_sql" >
+      select t1.id 
+  </sql>
+  
+  <sql id="base_join_sql" >
+      from house t1 
+      left join building t2 on t1.building_id = t2.id
+      left join project t3 on t2.project_id = t3.id 
+	  left join house_type t4 on t1.type_id = t4.id  
+	  left join house_business_type t5 on t1.business_type_id = t5.id 
+	  left join  house_status t6 on t1.status_id = t6.id
+	  left join  user_house_rel t7 on t1.id = t7.house_id
+	  left join  u_user t8 on t7.user_id = t8.id
+	  left join u_appointments t9 on t7.appointments_id = t9.id and t9.id = 1
+  </sql>
+  
+  <sql id="limit_sql">
+  	   <if test="page_sql != null and page_sql != ''">
+      	${page_sql}
+      </if>
+  </sql>
+  
+  <sql id="where_all">
+      where 1=1 
+	  <if test="userId != null" >
+          and t1.update_user = #{userId,jdbcType=BIGINT}
+      </if>
+	  <if test="cityCompanyId != null" >
+          and t3.city_company_id = #{cityCompanyId,jdbcType=BIGINT}
+      </if>
+	  <if test="projectName != null" >
+          and LOWER(t3.name) like CONCAT("%",#{projectName,jdbcType=VARCHAR},"%")  
+      </if>
+	  <if test="projectPhase != null" >
+          and LOWER(t2.project_phase) like CONCAT("%",#{projectPhase,jdbcType=VARCHAR},"%")
+      </if>
+	  <if test="houseTypeId != null" >
+          and t1.type_id = #{houseTypeId,jdbcType=BIGINT}
+      </if>
+	  <if test="houseBusinessTypeId != null" >
+          and t1.business_type_id = #{houseBusinessTypeId,jdbcType=BIGINT}
+      </if>
+	  <if test="houseConsultant != null" >
+          and LOWER(t8.nickname) like CONCAT("%",#{houseConsultant,jdbcType=VARCHAR},"%")
+      </if>
+	  <if test="customerName != null" >
+          and LOWER(t1.customer_name) like CONCAT("%",#{customerName,jdbcType=VARCHAR},"%")
+      </if>
+	  <if test="erpName != null" >
+          and LOWER(t1.erp_name) like CONCAT("%",#{erpName,jdbcType=VARCHAR},"%")
+      </if>
+	  <if test="isLargeAmount != null" >
+          and t1.is_large_amount = 1 = #{isLargeAmount,jdbcType=BIGINT}
+      </if>	      	      	      	      	      	      	      	      	      
+      order by t1.update_time desc
+  </sql>
+  
+  <select id="findAll" resultMap="BaseResultMap" >
+  	 <include refid="base_all_select_sql" />
+  	 <include refid="base_join_sql" />
+     <include refid="where_all"/>
+     <include refid="limit_sql" />
+  </select>
+  <select id="findCount" resultMap="BaseResultMap" >
+ 	 select count(1) from (
+ 	   <include refid="base_count_select_sql" />
+ 	   <include refid="base_join_sql" />
+	   <include refid="where_all"/>
+	 ) as tab 
+  </select>
+  
+  
+  <select id="findHouseAll" resultType="com.ld.saleseport.bo.HouseBo">
+  	 <include refid="base_all_select_sql" />
+  	 <include refid="base_join_sql" />
+     <include refid="where_all"/>
+  </select>
+  
+  <!-- 获取维度数据 -->
+  <select id="selectcDimData" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+  	select id,name from ${tableName}  
+  	<if test="whereStr != null" >
+          ${whereStr}
+    </if>
+  </select>
+  
+    <!-- 获取维度数据 -->
+  <select id="selectcDimDataAll" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+  	select t1.id, t1.erp_name name from house t1 left join building t2 on t1.building_id = t2.id 
+  	left join project t3 on t2.project_id = t3.id   
+  	<where>
+		  <if test="project_id != null">
+		      and t3.id = #{project_id,jdbcType=BIGINT}
+		  </if>  
+	 </where>
+  </select>
+  
+  <!-- 保存城市公司 -->
+  <insert id="insertCityCompany" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into city_company (id, name) values (#{id,jdbcType=BIGINT}, #{name,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 保存项目公司 -->
+  <insert id="insertProjectCompany" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into project_company (id, name) values (#{id,jdbcType=BIGINT}, #{name,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 根据名称集合查询维表数据列表 -->
+  <select id="selectcDimDataByNames" parameterType="java.util.Map" resultType="com.ld.saleseport.bo.HouseBo">
+      select id,name from ${tableName} where name in 
+      <foreach item="item" index="index" collection="list" open="(" separator="," close=")">  
+	  #{item}  
+	 </foreach>	
+  </select>
+  
+  <!-- 根据房源ID获取房源详情 -->
+  <select id="selectcHouseById" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+  	select id,name from ${tableName} 
+  </select>
+  
+  <!-- 修改房源信息 -->
+  <update id="updateHouseById" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update house t set t.building_id = #{building_id,jdbcType=BIGINT}, 
+  	t.erp_code = #{erp_code,jdbcType=VARCHAR}, t.erp_name = #{erp_name,jdbcType=VARCHAR}, t.erp_sale_code = #{erp_sale_code,jdbcType=VARCHAR},
+  	t.is_large_amount = #{is_large_amount,jdbcType=BIGINT},
+  	t.pre_unit_price = #{pre_unit_price,jdbcType=DECIMAL},
+    t.business_type_id = #{business_type_id,jdbcType=BIGINT}, t.business_sub_type_id = #{business_sub_type_id,jdbcType=BIGINT},t.sale_type_id = #{sale_type_id,jdbcType=BIGINT}, 
+    t.type_id = #{type_id,jdbcType=BIGINT}, t.pre_size = #{pre_size,jdbcType=DECIMAL}, t.status_id = #{status_id,jdbcType=BIGINT},
+    t.is_carry_forward = #{is_carry_forward,jdbcType=BIGINT},
+    t.carry_forward_income = #{carry_forward_income,jdbcType=DECIMAL}, t.carry_forward_cost_unit_price = #{carry_forward_cost_unit_price,jdbcType=DECIMAL}, t.real_size = #{real_size,jdbcType=DECIMAL},
+    t.customer_code = #{customer_code,jdbcType=VARCHAR}, t.customer_name = #{customer_name,jdbcType=VARCHAR}, t.customer_mobile = #{customer_mobile,jdbcType=VARCHAR},    
+    t.customer_number = #{customer_number,jdbcType=VARCHAR},
+    t.is_change_name = #{is_change_name,jdbcType=BIGINT},
+    t.house_code = #{house_code,jdbcType=VARCHAR}, 
+    t.house_name = #{house_name,jdbcType=VARCHAR},  
+    t.remark = #{remark,jdbcType=VARCHAR}, 
+    t.update_user = #{userId,jdbcType=BIGINT}, t.update_time = #{dateStr,jdbcType=VARCHAR} 
+    where t.id = #{house_id,jdbcType=BIGINT}
+  </update>
+  
+  <!-- 修改房源关联的楼栋信息 -->
+  <update id="updateHouseBuildingById" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update building t set t.project_id = #{project_id,jdbcType=BIGINT}, t.project_phase = #{project_phase,jdbcType=VARCHAR}
+  	where t.id = (select t1.building_id from house t1 where t1.id = #{house_id,jdbcType=BIGINT})
+  </update>
+  
+  <!-- 查询房源关系 -->
+  <select id="selectcUserHouseRel" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+  	select id,name from ${tableName} 
+  </select>
+  
+  <!-- 根据房源ID获取诚意金 -->
+  <select id="selectcEarnestMoneyById" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+  	select t.id, 
+  	    t.pay_type,t.pay_time,t.status,
+		t.pos_amount,t.cash_amount,t.bank_transfer_amount,
+		t.bank_bill_amount,t.bank_bill_type,t.bank_name,
+		t.receipt_amount,t.remain_amount,
+		t.refund_amount,t.refund_check_number,
+		t.convert_house_amount,
+		t.remark,
+		t.create_time,
+	    t.update_time,
+  	    (select u.nickname from u_user u where t.update_user = u.id) update_user_name
+  	 from earnest_money t where t.house_id = #{house_id,jdbcType=BIGINT}
+  </select>
+  
+  <!-- 根据项目获取诚意金 -->
+  <select id="selectcEarnestMoneyByProject" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+    select t.id, t.house_id, t.project_id,
+  	    t.pay_type,t.pay_time,t.status,
+		t.pos_amount,t.cash_amount,t.bank_transfer_amount,
+		t.bank_bill_amount,t.bank_bill_type,t.bank_name,
+		t.receipt_amount,t.remain_amount,
+		t.refund_amount,t.refund_check_number,
+		t.convert_house_amount,
+		t.remark,
+		t.create_time,
+	    t.update_time,
+  	    (select u.nickname from u_user u where t.update_user = u.id) update_user_name,
+		t1.code, t2.erp_name, t3.pay_amount, t.refund_time
+		  	 from earnest_money t
+		left join receipt_invoice_data t1 on t.house_id = t1.house_id
+		left join house t2 on t.house_id = t2.id
+		left join money_pay_detail t3 on t1.pay_detail_id = t3.id
+     <where>
+		  <if test="project_id != null">
+		      and t.project_id = #{project_id,jdbcType=BIGINT}
+		  </if>  
+		  <if test="status != null">
+		      and t.status = #{status,jdbcType=BIGINT}
+		  </if>
+		  <if test="pay_time != null">
+		      and date_format(t.pay_time, '%Y-%m-%d') = #{pay_time,jdbcType=VARCHAR}
+		  </if>  
+	 </where>
+     order by t.pay_time desc
+  </select>
+  
+  <!-- 新增诚意金信息 -->
+  <insert id="insertEarnestMoneyById" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into earnest_money (id,house_id,project_id,
+				pay_type, pay_time, status, 
+				pos_amount, cash_amount, bank_transfer_amount,
+				bank_bill_amount,bank_bill_type,bank_name,
+				receipt_amount,remain_amount,
+				refund_amount,refund_check_number,convert_house_amount,
+				update_user, update_time, remark)
+    values (#{id,jdbcType=BIGINT}, #{house_id,jdbcType=BIGINT}, #{project_id,jdbcType=BIGINT},
+            #{pay_type,jdbcType=BIGINT}, #{pay_time,jdbcType=VARCHAR}, #{status,jdbcType=BIGINT}, 
+            #{pos_amount,jdbcType=DECIMAL}, #{cash_amount,jdbcType=DECIMAL}, #{bank_transfer_amount,jdbcType=DECIMAL},
+            #{bank_bill_amount,jdbcType=DECIMAL}, #{bank_bill_type,jdbcType=BIGINT}, #{bank_name,jdbcType=VARCHAR},
+            #{receipt_amount,jdbcType=DECIMAL}, #{remain_amount,jdbcType=DECIMAL},
+            #{refund_amount,jdbcType=DECIMAL}, #{refund_check_number,jdbcType=VARCHAR}, #{convert_house_amount,jdbcType=DECIMAL}, 
+            #{userId,jdbcType=BIGINT}, #{dateStr,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改诚意金信息 -->
+  <update id="updateEarnestMoneyById" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update earnest_money t set 
+  	t.pay_type = #{pay_type,jdbcType=BIGINT}, t.pay_time = #{pay_time,jdbcType=VARCHAR}, t.status = #{status,jdbcType=BIGINT},
+    t.pos_amount = #{pos_amount,jdbcType=DECIMAL}, t.cash_amount = #{cash_amount,jdbcType=DECIMAL},t.bank_transfer_amount = #{bank_transfer_amount,jdbcType=DECIMAL}, 
+    t.bank_bill_amount = #{bank_bill_amount,jdbcType=DECIMAL}, t.bank_bill_type = #{bank_bill_type,jdbcType=BIGINT}, t.bank_name = #{bank_name,jdbcType=VARCHAR},
+    t.receipt_amount = #{receipt_amount,jdbcType=DECIMAL}, t.remain_amount = #{remain_amount,jdbcType=DECIMAL},
+    t.refund_amount = #{refund_amount,jdbcType=DECIMAL}, t.refund_check_number = #{refund_check_number,jdbcType=VARCHAR},
+    t.convert_house_amount = #{convert_house_amount,jdbcType=DECIMAL}, 
+    t.remark = #{remark,jdbcType=VARCHAR}, 
+    t.update_user = #{userId,jdbcType=BIGINT}, t.update_time = #{dateStr,jdbcType=VARCHAR} 
+    where t.id = #{id,jdbcType=BIGINT}
+  </update>
+  
+  <!-- 根据房源ID获查询合同基础信息 -->
+  <select id="selectHouseContractMsg" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+    select  t.id,
+			t.contract_code, t.buy_method_id,
+			t.unit_price,t.total_price, t.sign_date, t.verification_date,
+			t.late_fee_ratio, 
+			(select u.nickname from u_user u where t.update_user = u.id) update_user_name,
+			t.update_time, t.remark
+			from house_contract t
+    where t.house_id = #{house_id,jdbcType=BIGINT}
+  </select>
+  
+  <!-- 新增合同基础信息-->
+  <insert id="insertHouseContractMsgById" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into house_contract (id,house_id,
+				contract_code, buy_method_id,
+				unit_price,total_price, sign_date, verification_date,
+				late_fee_ratio, 
+				update_user, update_time, remark)
+    values (#{id,jdbcType=BIGINT}, #{house_id,jdbcType=BIGINT}, 
+            #{contract_code,jdbcType=VARCHAR}, #{buy_method_id,jdbcType=BIGINT}, #{unit_price,jdbcType=DECIMAL}, 
+            #{total_price,jdbcType=DECIMAL},#{sign_date,jdbcType=VARCHAR}, #{verification_date,jdbcType=VARCHAR}, 
+            #{late_fee_ratio,jdbcType=BIGINT},
+            #{userId,jdbcType=BIGINT}, #{dateStr,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改合同基础信息-->
+  <update id="updateHouseContractMsgById" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update house_contract t set 
+  	t.contract_code = #{contract_code,jdbcType=VARCHAR}, t.buy_method_id = #{buy_method_id,jdbcType=BIGINT},
+    t.unit_price = #{unit_price,jdbcType=DECIMAL},t.total_price = #{total_price,jdbcType=DECIMAL}, 
+    t.sign_date = #{sign_date,jdbcType=VARCHAR}, t.verification_date = #{verification_date,jdbcType=VARCHAR},
+    t.late_fee_ratio = #{late_fee_ratio,jdbcType=BIGINT},
+    t.remark = #{remark,jdbcType=VARCHAR}, 
+    t.update_user = #{userId,jdbcType=BIGINT}, t.update_time = #{dateStr,jdbcType=VARCHAR} 
+    where t.id = #{id,jdbcType=BIGINT} 
+  </update>
+  
+  <!-- 根据房源ID获查询合同按揭信息 -->
+  <select id="selectHouseMortgageDataMsg" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+    select t.id, t.contract_id, t.mortgage_type_id, t.downpayments_ratio, t.downpayments_amount,
+		   t.public_fund_loan_amount, t.business_loan_amount, t.loan_bank, t.mortgage_department,
+		   t.create_time, t.update_time, 
+		   (select u.nickname from u_user u where t.update_user = u.id) update_user_name, 
+		   t.remark  
+    from house_mortgage_data t 
+    where t.contract_id = #{contract_id,jdbcType=BIGINT}
+  </select>
+  
+  <!-- 新增按揭信息-->
+  <insert id="insertHouseMortgageDataById" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into house_mortgage_data (id,contract_id,mortgage_type_id,
+				downpayments_ratio, downpayments_amount,
+				public_fund_loan_amount, business_loan_amount, loan_bank,mortgage_department,
+				update_user, create_time, update_time, remark)
+    values (#{id,jdbcType=BIGINT}, #{contract_id,jdbcType=BIGINT}, #{mortgage_type_id,jdbcType=BIGINT},
+            #{downpayments_ratio,jdbcType=BIGINT}, #{downpayments_amount,jdbcType=DECIMAL}, 
+            #{public_fund_loan_amount,jdbcType=DECIMAL}, #{business_loan_amount,jdbcType=DECIMAL}, 
+            #{loan_bank,jdbcType=VARCHAR}, #{mortgage_department,jdbcType=VARCHAR},
+            #{userId,jdbcType=BIGINT},#{dateStr,jdbcType=VARCHAR},#{dateStr,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改按揭信息-->
+  <update id="updateHouseMortgageDataById" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update house_mortgage_data t set t.mortgage_type_id = #{mortgage_type_id,jdbcType=BIGINT}, 
+  	t.downpayments_ratio = #{downpayments_ratio,jdbcType=BIGINT},t.downpayments_amount = #{downpayments_amount,jdbcType=DECIMAL},
+    t.public_fund_loan_amount = #{public_fund_loan_amount,jdbcType=DECIMAL}, t.business_loan_amount = #{business_loan_amount,jdbcType=DECIMAL}, 
+    t.loan_bank = #{loan_bank,jdbcType=VARCHAR}, t.mortgage_department = #{mortgage_department,jdbcType=BIGINT},
+    t.remark = #{remark,jdbcType=VARCHAR}, 
+    t.update_user = #{userId,jdbcType=BIGINT}, t.update_time = #{dateStr,jdbcType=VARCHAR} 
+    where t.id = #{id,jdbcType=BIGINT} 
+  </update>
+  
+  <!-- 根据房源ID获查询合同金额信息 -->
+  <select id="selectHouseContractMoneyMsg" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+    select t1.id, t1.money_type_id, t2.name money_type_name, t1.amount, t1.receivables_time,
+    (select sum(tt.pay_amount) from money_pay_detail tt where tt.contract_money_id = t1.id group by tt.contract_money_id) pay_amount,
+    t1.status, t1.is_overdue, t1.overdue_reason_id, t1.overdue_extend_remark,
+    t1.is_recover_available, t1.expect_recover_date, t1.remark, t1.update_time,     
+    (select u.nickname from u_user u where t1.update_user = u.id) update_user_name
+    from contract_money t1, money_type t2 where t1.money_type_id = t2.id 
+    and t1.house_id = #{house_id,jdbcType=BIGINT} 
+  </select>
+  
+  <!-- 新增合同金额信息-->
+  <insert id="insertHouseContractMoneyById" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into contract_money (id,house_id,
+                money_type_id,amount,receivables_time,status,
+				is_overdue,overdue_reason_id,overdue_extend_remark,
+				is_recover_available,expect_recover_date,
+				update_user, create_time, update_time, remark)
+    values (#{id,jdbcType=BIGINT}, #{house_id,jdbcType=BIGINT}, 
+            #{money_type_id,jdbcType=BIGINT},#{amount,jdbcType=DECIMAL},#{receivables_time,jdbcType=VARCHAR},#{status,jdbcType=BIGINT},
+            #{is_overdue,jdbcType=BIGINT},#{overdue_reason_id,jdbcType=VARCHAR},#{overdue_extend_remark,jdbcType=VARCHAR},
+            #{is_recover_available,jdbcType=BIGINT},#{expect_recover_date,jdbcType=VARCHAR},
+            #{userId,jdbcType=BIGINT},#{dateStr,jdbcType=VARCHAR},#{dateStr,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改合同金额信息-->
+  <update id="updateHouseContractMoneyById" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update contract_money t set 
+  	t.money_type_id = #{money_type_id,jdbcType=BIGINT},t.amount = #{amount,jdbcType=DECIMAL},t.receivables_time = #{receivables_time,jdbcType=VARCHAR},t.status = #{status,jdbcType=BIGINT}, 
+    t.is_overdue = #{is_overdue,jdbcType=BIGINT}, t.overdue_reason_id = #{overdue_reason_id,jdbcType=VARCHAR}, t.overdue_extend_remark = #{overdue_extend_remark,jdbcType=VARCHAR},
+    t.is_recover_available = #{is_recover_available,jdbcType=BIGINT}, t.expect_recover_date = #{expect_recover_date,jdbcType=VARCHAR},
+    t.remark = #{remark,jdbcType=VARCHAR}, 
+    t.update_user = #{userId,jdbcType=BIGINT}, t.update_time = #{dateStr,jdbcType=VARCHAR} 
+    where t.id = #{id,jdbcType=BIGINT} 
+  </update>
+  
+  <!-- 删除合同金额信息-->
+  <delete id="deleteHouseContractMoneyById" parameterType="com.ld.saleseport.bo.HouseBo" >
+      delete from contract_money where id = #{id,jdbcType=BIGINT} 
+  </delete>
+  
+  <!-- 根据房源ID获取收款记录 -->
+  <select id="selectMoneyPayDetailById" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+    select t1.id, t1.contract_money_id, t3.name, t2.amount, t2.receivables_time, t1.pay_amount, t1.erp_paid_amount,
+    t1.pay_time, t1.pay_type, t1.is_overdue, t1.money_type_id,
+    
+	t1.bank_name, t1.bank_bill_type, t1.bank_bill_number, t1.receipt_company,
+	t1.receipt_name, t1.erp_late_fee_ratio, t1.erp_late_fee,late_fee,
+	t1.overdue_reason_id, t1.is_late_fee_calculate, t1.is_overdue, t1.is_dimission_calculate,
+	(select u.nickname from u_user u where t1.update_user = u.id) update_user_name,
+	t1.create_time, t1.update_time, t1.remark
+	from money_pay_detail t1,contract_money t2, money_type t3
+	where t1.contract_money_id = t2.id and t1.money_type_id = t3.id
+    and t2.house_id = #{house_id,jdbcType=BIGINT}
+  </select>
+  
+  <!-- 新增收款记录信息-->
+  <insert id="insertMoneyPayDetailData" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into money_pay_detail (id,money_type_id,contract_money_id,
+				pay_amount, pay_time, pay_type,bank_name,
+				bank_bill_type, bank_bill_number, receipt_company,
+				receipt_name, erp_paid_amount, erp_late_fee_ratio,erp_late_fee,late_fee,
+				overdue_reason_id,is_late_fee_calculate,is_overdue,is_dimission_calculate,
+				update_user, create_time, update_time, remark)
+    values (#{id,jdbcType=BIGINT},#{money_type_id,jdbcType=BIGINT},#{contract_money_id,jdbcType=BIGINT},
+            #{pay_amount,jdbcType=DECIMAL}, #{pay_time,jdbcType=VARCHAR}, #{pay_type,jdbcType=BIGINT}, #{bank_name,jdbcType=VARCHAR},
+            #{bank_bill_type,jdbcType=BIGINT}, #{bank_bill_number,jdbcType=VARCHAR}, #{receipt_company,jdbcType=VARCHAR}, 
+            #{receipt_name,jdbcType=VARCHAR},#{erp_paid_amount,jdbcType=DECIMAL},#{erp_late_fee_ratio,jdbcType=BIGINT},#{erp_late_fee,jdbcType=DECIMAL},#{late_fee,jdbcType=DECIMAL},
+            #{overdue_reason_id,jdbcType=VARCHAR},#{is_late_fee_calculate,jdbcType=BIGINT},#{is_overdue,jdbcType=BIGINT},#{is_dimission_calculate,jdbcType=BIGINT},
+            #{userId,jdbcType=BIGINT}, #{dateStr,jdbcType=VARCHAR}, #{dateStr,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改收款记录信息-->
+  <update id="updateMoneyPayDetailData" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update money_pay_detail t set 
+  	t.money_type_id = #{money_type_id,jdbcType=BIGINT}, t.contract_money_id = #{contract_money_id,jdbcType=BIGINT},
+    t.pay_amount = #{pay_amount,jdbcType=DECIMAL}, t.pay_time = #{pay_time,jdbcType=VARCHAR}, t.pay_type = #{pay_type,jdbcType=BIGINT}, t.bank_name = #{bank_name,jdbcType=VARCHAR},
+    t.bank_bill_type = #{bank_bill_type,jdbcType=BIGINT},t.bank_bill_number = #{bank_bill_number,jdbcType=VARCHAR},t.receipt_company = #{receipt_company,jdbcType=VARCHAR},
+    t.receipt_name = #{receipt_name,jdbcType=VARCHAR},t.erp_paid_amount = #{erp_paid_amount,jdbcType=DECIMAL},t.erp_late_fee_ratio = #{erp_late_fee_ratio,jdbcType=BIGINT},t.erp_late_fee = #{erp_late_fee,jdbcType=DECIMAL},t.late_fee = #{late_fee,jdbcType=DECIMAL},
+    t.overdue_reason_id = #{overdue_reason_id,jdbcType=VARCHAR},t.is_late_fee_calculate = #{is_late_fee_calculate,jdbcType=BIGINT},t.is_overdue = #{is_overdue,jdbcType=BIGINT},t.is_dimission_calculate = #{is_dimission_calculate,jdbcType=BIGINT},
+    t.update_user = #{userId,jdbcType=BIGINT},t.update_time = #{dateStr,jdbcType=VARCHAR},t.remark = #{remark,jdbcType=VARCHAR}
+    where t.id = #{id,jdbcType=BIGINT} 
+  </update>
+  
+  <!-- 删除收款记录信息 -->
+  <delete id="deleteMoneyPayDetailData" parameterType="com.ld.saleseport.bo.HouseBo" >
+      delete from money_pay_detail where id = #{id,jdbcType=BIGINT} 
+  </delete>
+  
+  <!-- 删除诚意金信息 -->
+  <delete id="deleteEarnestMoneyDetailData" parameterType="com.ld.saleseport.bo.HouseBo" >
+      delete from earnest_money where id = #{id,jdbcType=BIGINT} 
+  </delete>
+  
+  <!-- 根据房源ID获取收据发票信息 -->
+  <select id="selectReceiptInvoiceDataById" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+    select t1.id, 
+	t1.type, t1.invoice_time, t1.name, t1.code, t1.amount, t1.invoice_tax_rate, t1.invoice_tax, t1.isvalid, t1.old_code,
+	t1.money_type_id, t1.receipt_company, t1.is_paid_added_tax, t1.is_paid_sales_tax,
+	(select u.nickname from u_user u where t1.update_user = u.id) update_user_name,
+	t1.pay_detail_id,t1.update_time,t1.remark 
+	 from receipt_invoice_data t1,money_pay_detail t2, contract_money t3 
+	where t1.pay_detail_id = t2.id and t2.contract_money_id = t3.id 
+    and t3.house_id = #{house_id,jdbcType=BIGINT}
+  </select>
+  
+  <!-- 新增收据发票信息-->
+  <insert id="insertReceiptInvoiceData" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into receipt_invoice_data (id,type,money_type_id,pay_detail_id,
+				code, name,receipt_company,
+				amount, invoice_time, isvalid,
+				is_paid_added_tax, is_paid_sales_tax,
+				invoice_tax_rate,invoice_tax,old_code,
+				update_user, update_time, remark)
+    values (#{id,jdbcType=BIGINT},#{type,jdbcType=BIGINT},#{money_type_id,jdbcType=BIGINT},#{pay_detail_id,jdbcType=BIGINT},
+            #{code,jdbcType=VARCHAR}, #{name,jdbcType=BIGINT}, #{receipt_company,jdbcType=VARCHAR},
+            #{amount,jdbcType=DECIMAL}, #{invoice_time,jdbcType=VARCHAR}, #{isvalid,jdbcType=BIGINT}, 
+            #{is_paid_added_tax,jdbcType=BIGINT},#{is_paid_sales_tax,jdbcType=BIGINT},
+            #{invoice_tax_rate,jdbcType=DECIMAL},#{invoice_tax,jdbcType=DECIMAL},#{old_code,jdbcType=VARCHAR},
+            #{userId,jdbcType=BIGINT}, #{dateStr,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改收据发票信息-->
+  <update id="updateReceiptInvoiceData" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update receipt_invoice_data t set 
+  	t.type = #{type,jdbcType=BIGINT}, t.money_type_id = #{money_type_id,jdbcType=BIGINT}, t.pay_detail_id = #{pay_detail_id,jdbcType=BIGINT},
+    t.code = #{unit_price,jdbcType=DECIMAL}, t.name = #{name,jdbcType=VARCHAR}, t.receipt_company = #{receipt_company,jdbcType=VARCHAR},
+    t.amount = #{amount,jdbcType=DECIMAL},t.invoice_time = #{invoice_time,jdbcType=VARCHAR},t.isvalid = #{isvalid,jdbcType=BIGINT},
+    t.is_paid_added_tax = #{is_paid_added_tax,jdbcType=BIGINT},t.is_paid_sales_tax = #{is_paid_sales_tax,jdbcType=BIGINT},
+    t.invoice_tax_rate = #{invoice_tax_rate,jdbcType=DECIMAL},t.invoice_tax = #{invoice_tax,jdbcType=DECIMAL},
+    t.old_code = #{old_code,jdbcType=VARCHAR},
+    t.update_user = #{userId,jdbcType=BIGINT},t.update_time = #{dateStr,jdbcType=VARCHAR},t.remark = #{remark,jdbcType=VARCHAR}
+    where t.id = #{id,jdbcType=BIGINT} 
+  </update>
+  
+  <!-- 删除收据发票信息 -->
+  <delete id="deleteReceiptInvoiceData" parameterType="com.ld.saleseport.bo.HouseBo" >
+    delete from receipt_invoice_data where id = #{id,jdbcType=BIGINT} 
+  </delete>
+  
+  <!-- 查询项目信息 -->
+  <select id="selectcProjectData" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+  	select * from project  
+  	<where>
+	      <if test="erp_code != null">
+		      and erp_code = #{erp_code,jdbcType=VARCHAR}
+		  </if>     
+	</where>
+  </select>
+  
+  <!-- 查询楼栋信息 -->
+  <select id="selectcBuildingData" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+  	select * from building  
+  	<where>
+	      <if test="building_erp_code != null">
+		      and erp_code = #{building_erp_code,jdbcType=VARCHAR}
+		  </if>     
+	</where> 
+  </select>
+  
+  <!-- 查询房源信息 -->
+  <select id="selectcHouseData" parameterType="com.ld.saleseport.bo.HouseBo" resultType="com.ld.saleseport.bo.HouseBo">
+  	select * from house  
+  	<where>
+	      <if test="project_name != null">
+		      and name = #{project_name,jdbcType=VARCHAR}
+		  </if>    
+		  <if test="house_code != null">
+		      and house_code = #{house_code,jdbcType=VARCHAR}
+		  </if>  
+	</where>
+  </select>
+  
+  <!-- 新增项目信息 -->
+  <insert id="insertProjectData" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into project (id,name,erp_code,
+				city_company_id, project_company_id, sale_start_time,
+				saled_ratio, accepted_ratio,
+				update_user, create_time, update_time)
+    values (#{id,jdbcType=BIGINT}, #{name,jdbcType=VARCHAR}, #{erp_code,jdbcType=VARCHAR}, 
+            #{city_company_id,jdbcType=BIGINT}, #{project_company_id,jdbcType=BIGINT}, #{sale_start_time,jdbcType=VARCHAR}, 
+            #{saled_ratio,jdbcType=DECIMAL}, #{accepted_ratio,jdbcType=DECIMAL},
+            #{userId,jdbcType=BIGINT}, #{dateStr,jdbcType=VARCHAR}, #{dateStr,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改项目信息-->
+  <update id="updateProjectData" parameterType="com.ld.saleseport.bo.HouseBo">
+  	update project t set 
+  	t.name = #{name,jdbcType=VARCHAR}, t.erp_code = #{erp_code,jdbcType=VARCHAR},
+    t.city_company_id = #{city_company_id,jdbcType=BIGINT}, t.project_company_id = #{project_company_id,jdbcType=BIGINT},
+    t.sale_start_time = #{sale_start_time,jdbcType=VARCHAR},
+    t.saled_ratio = #{saled_ratio,jdbcType=DECIMAL},t.accepted_ratio = #{accepted_ratio,jdbcType=DECIMAL},
+    t.update_user = #{userId,jdbcType=BIGINT}, t.update_time = #{dateStr,jdbcType=VARCHAR} 
+    where t.erp_code = #{erp_code,jdbcType=VARCHAR} 
+  </update>
+  
+  <!-- 新增楼栋信息 -->
+  <insert id="insertBuindingData" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into building (id,name,land,project_id,project_phase,erp_code,fund_ready_time)
+    values (#{id,jdbcType=BIGINT}, #{name,jdbcType=VARCHAR}, #{land,jdbcType=VARCHAR},
+            #{project_id,jdbcType=BIGINT}, #{project_phase,jdbcType=VARCHAR}, #{building_erp_code,jdbcType=VARCHAR}, 
+            #{fund_ready_time,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改楼栋信息-->
+  <update id="updateBuindingData" parameterType="com.ld.saleseport.bo.HouseBo">
+    update building t set 
+  	t.name = #{name,jdbcType=VARCHAR}, t.land = #{land,jdbcType=VARCHAR},
+    t.project_id = #{project_id,jdbcType=BIGINT}, t.project_phase = #{project_phase,jdbcType=VARCHAR},
+    t.fund_ready_time = #{fund_ready_time,jdbcType=VARCHAR} 
+    where t.erp_code = #{building_erp_code,jdbcType=VARCHAR}
+  </update>
+  
+  <!-- 新增房源信息 -->
+  <insert id="insertHouseData" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.saleseport.bo.HouseBo" >
+    insert into house (id,building_id,
+				erp_code, erp_name, erp_sale_code, is_large_amount,pre_unit_price,
+				business_type_id, business_sub_type_id, sale_type_id,
+				type_id, pre_size, status_id,is_carry_forward, 
+				carry_forward_income, carry_forward_cost_unit_price,real_size,
+				customer_code, customer_name, customer_mobile,customer_number,is_change_name,
+				update_user, create_time, update_time, remark, house_code, house_name)
+    values (#{id,jdbcType=BIGINT}, #{building_id,jdbcType=BIGINT}, 
+            #{erp_code,jdbcType=VARCHAR}, #{erp_name,jdbcType=VARCHAR}, #{erp_sale_code,jdbcType=VARCHAR}, 
+            #{is_large_amount,jdbcType=BIGINT}, #{pre_unit_price,jdbcType=DECIMAL}, 
+            #{business_type_id,jdbcType=BIGINT}, #{business_sub_type_id,jdbcType=BIGINT}, #{sale_type_id,jdbcType=BIGINT},
+            #{type_id,jdbcType=BIGINT}, #{pre_size,jdbcType=DECIMAL}, #{status_id,jdbcType=BIGINT}, #{is_carry_forward,jdbcType=BIGINT},
+            #{carry_forward_income,jdbcType=DECIMAL}, #{carry_forward_cost_unit_price,jdbcType=DECIMAL},
+            #{real_size,jdbcType=DECIMAL}, #{customer_code,jdbcType=VARCHAR}, #{customer_name,jdbcType=VARCHAR},
+            #{customer_mobile,jdbcType=VARCHAR},#{customer_number,jdbcType=VARCHAR},#{is_change_name,jdbcType=BIGINT},
+            #{userId,jdbcType=BIGINT}, #{dateStr,jdbcType=VARCHAR}, #{dateStr,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR},
+            #{house_code,jdbcType=VARCHAR}, #{house_name,jdbcType=VARCHAR})
+  </insert>
+</mapper>

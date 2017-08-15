@@ -1,0 +1,594 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ld.common.dao.FinanceReportMapper" >
+  <resultMap id="BaseResultMap" type="com.ld.report.bo.FinanceReportBo" >
+    <id column="id" property="id" jdbcType="BIGINT" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="descs" property="descs" jdbcType="VARCHAR" />
+    <result column="amount" property="amount" jdbcType="BIGINT" />
+    <result column="sub_company_id" property="subCompanyId" jdbcType="BIGINT" />
+    <result column="bank_id" property="bankId" jdbcType="BIGINT" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    t1.id, t1.name
+    <if test="type != null and type !='' " >
+        ,${type}
+    </if>
+  </sql>
+  
+  <sql id="limit_sql">
+  	   <if test="page_sql != null and page_sql != ''">
+      	${page_sql}
+      </if>
+  </sql>
+  
+  <sql id="where_all">
+    <if test="id != null" >
+        and id = #{id,jdbcType=BIGINT}
+    </if>
+    <if test="queryType != null" >
+	    and type = #{queryType,jdbcType=BIGINT}
+	</if>
+	<if test="areaType != null" >
+	    and t1.id in (select t2.branch_company_id from c_sub_company t2 where t2.type = #{areaType,jdbcType=BIGINT} group by t2.branch_company_id)
+	</if>
+	<if test="userId != null">
+        and t2.user_id = #{userId,jdbcType=BIGINT}
+    </if>
+  </sql>
+  
+  <select id="findAll" resultMap="BaseResultMap" >
+  	 select 
+    <include refid="Base_Column_List" />
+    from   ${tableName} t1 
+    
+    <if test="tableName == 'c_sub_company'" >
+	    ,c_user_sub_company_rel t2 where t1.id = t2.sub_company_id  
+	    <if test="status != null">
+	    and  t1.id not in (select t3.sub_company_id from c_process_status t3 where t3.status = 1 and t3.date = #{dateStr,jdbcType=VARCHAR})
+	    </if>
+	</if>
+	
+	<if test="tableName == 'c_branch_company'" >
+	    where t1.id in (select t2.branch_company_id from c_sub_company t2, c_user_sub_company_rel t3 
+	          where t2.id = t3.sub_company_id 
+	          <if test="branchUserId != null">
+		        and t3.user_id = #{branchUserId,jdbcType=BIGINT}
+		      </if>
+	          <if test="queryType != null">
+                 and t2.type = #{queryType,jdbcType=BIGINT}
+              </if> 
+          group by t2.branch_company_id)
+	</if>
+    
+    <include refid="where_all"/>
+    <include refid="limit_sql" />
+  </select>
+  <select id="findCount" resultMap="BaseResultMap" >
+ 	 select count(id) from ${tableName} t1 
+ 	 
+ 	 <if test="tableName == 'c_sub_company'" >
+	    ,c_user_sub_company_rel t2 where t1.id = t2.sub_company_id  
+	    <if test="status != null">
+	    and  t1.id not in (select t3.sub_company_id from c_process_status t3 where t3.status = 1 and t3.date = #{dateStr,jdbcType=VARCHAR})
+	    </if> 
+	</if>
+	
+	<if test="tableName == 'c_branch_company'" >
+	    where t1.id in (select t2.branch_company_id from c_sub_company t2, c_user_sub_company_rel t3 
+	          where t2.id = t3.sub_company_id 
+	          <if test="branchUserId != null">
+		        and t3.user_id = #{branchUserId,jdbcType=BIGINT}
+		      </if>
+	          <if test="queryType != null">
+                 and t2.type = #{queryType,jdbcType=BIGINT}
+              </if> 
+          group by t2.branch_company_id)
+	</if>
+	
+  	<include refid="where_all" />
+  </select>
+  
+  <!-- 根据条件获取银行余额 -->
+  <select id="selectSubCompTotalBalanceByCond" resultType="com.ld.report.bo.FinanceReportBo">
+      select t2.amount todayAmount,t3.amount incomeAmount,t4.amount costAmount,t5.amount invalidAmount
+		 from c_sub_company t1 left join c_sub_company_total_balance t2 on t1.id = t2.sub_company_id
+		left join c_income t3 on t1.id = t3.sub_company_id 
+		left join c_cost t4 on t1.id = t4.sub_company_id 
+		left join c_his_invalid_capital t5 on t1.id = t5.sub_company_id
+		where t1.id = #{id,jdbcType=BIGINT} and t2.date = #{dateStr,jdbcType=VARCHAR}     
+  </select>
+  
+  <!-- 获取子公司银行余额 -->
+  <select id="selectSubCompBalanceBasicData" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select t1.id, t1.sub_company_id subCompanyId, t1.bank_id bankId, t1.amount, t1.descs, t1.filepath 
+      from c_sub_company_his_balance t1 
+      <where>
+	      <if test="dateStr != null">
+		      and t1.date = #{dateStr,jdbcType=VARCHAR}
+		  </if>     
+	  </where>
+  </select>
+  
+  <!-- 获取子公司银行余额 -->
+  <select id="selectSubCompBalance" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select t2.name,t1.amount,t1.descs,t1.filepath from c_sub_company_his_balance t1,c_bank t2,c_user_sub_company_rel t3 
+      where t1.bank_id = t2.id and t1.sub_company_id = t3.sub_company_id 
+      and t1.sub_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR}  
+      <if test="userId != null">
+	        and t3.user_id = #{userId,jdbcType=BIGINT}
+	  </if>     
+  </select>
+  
+  <!-- 获取子公司银行余额-汇总 -->
+  <select id="selectSubCompBalanceTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select t2.name, sum(t1.amount) amount from c_sub_company_his_balance t1, c_sub_company t2, c_user_sub_company_rel t3  
+		where t1.sub_company_id = t2.id and t1.sub_company_id = t3.sub_company_id 
+		<if test="id != null" >
+		    and t1.sub_company_id = #{id,jdbcType=BIGINT} 
+		</if>
+		<if test="branchCompanyId != null" >
+		    and t2.branch_company_id = #{branchCompanyId,jdbcType=BIGINT} 
+		</if>
+		<if test="userId != null">
+	        and t3.user_id = #{userId,jdbcType=BIGINT}
+	    </if>
+		and t1.date = #{dateStr,jdbcType=VARCHAR}
+		 group by t2.name
+  </select>
+  
+  <!-- 获取分公司银行余额-汇总 -->
+  <select id="selectBranchCompBalanceTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select  sum(t1.amount) amount from c_sub_company_his_balance t1 where t1.sub_company_id in ( 
+		select t2.id from c_sub_company t2,c_branch_company t3,c_user_sub_company_rel t4 
+		where t2.branch_company_id = t3.id and t2.id = t4.sub_company_id  
+		<if test="id != null" >
+		    and t2.branch_company_id = #{id,jdbcType=BIGINT}
+		</if>
+		<if test="type != null" >
+		    and t2.type = #{type,jdbcType=BIGINT}
+		</if>
+		<if test="userId != null">
+	        and t4.user_id = #{userId,jdbcType=BIGINT}
+	    </if>
+		) 
+		and t1.date = #{dateStr,jdbcType=VARCHAR} 
+  </select>
+  
+  <!-- 获取子公司今日收入 -->
+  <select id="selectIncome" resultType="com.ld.report.bo.FinanceReportBo">
+      select t1.name,t1.amount,t1.descs,t1.income_type_id incomeTypeId from c_income t1 
+      where t1.sub_company_id=#{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR} 
+      <if test="income_type_id != null">
+	        and t1.income_type_id = #{income_type_id,jdbcType=BIGINT}
+	  </if>
+  </select>
+  
+  <!-- 获取子公司今日收入-汇总 -->
+  <select id="selectIncomeTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select sum(t1.amount) amount from c_income t1
+		where t1.sub_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR}
+		 group by t1.sub_company_id
+  </select>
+  
+  <!-- 获取分公司今日收入-汇总 -->
+  <select id="selectBranchCompIncomeTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select sum(t1.amount) amount from c_income t1,c_sub_company t2,c_branch_company t3
+		where t1.sub_company_id = t2.id and t2.branch_company_id = t3.id
+        and t2.branch_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR} 
+        group by t2.branch_company_id
+  </select>
+  
+  <!-- 获取子公司今日支出 -->
+  <select id="selectCost" resultType="com.ld.report.bo.FinanceReportBo">
+      select t1.name,t1.amount,t1.descs,t1.cost_type_id costTypeId from c_cost t1 
+      where t1.sub_company_id=#{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR} 
+      <if test="cost_type_id != null">
+	        and t1.cost_type_id = #{cost_type_id,jdbcType=BIGINT}
+	  </if>
+  </select>
+  
+  <!-- 获取子公司今日支出-汇总 -->
+  <select id="selectCostTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select sum(t1.amount) amount from c_cost t1
+		where t1.sub_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR}
+		 group by t1.sub_company_id        
+  </select>
+  
+  <!-- 获取分公司今日支出-汇总 -->
+  <select id="selectBranchCompCostTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select sum(t1.amount) amount from c_cost t1,c_sub_company t2,c_branch_company t3
+		where t1.sub_company_id = t2.id and t2.branch_company_id = t3.id
+        and t2.branch_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR} 
+        group by t2.branch_company_id        
+  </select>
+  
+  <!-- 获取子公司不可用资金 -->
+  <select id="selectInvalidCapital" resultType="com.ld.report.bo.FinanceReportBo">
+      select t1.id,t1.sub_company_id subCompanyId, t1.invalid_capital_type_id invalidCapitalTypeId,t1.amount,
+      t1.change_amount changeAmount, t1.descs,t2.name from c_his_invalid_capital t1,c_invalid_capital_type t2 
+      where t1.invalid_capital_type_id = t2.id 
+        <if test="id != null" >
+		    and t1.sub_company_id = #{id,jdbcType=BIGINT} 
+		</if>
+		<if test="dateStr != null" >
+		    and t1.date = #{dateStr,jdbcType=VARCHAR}
+		</if>
+  </select>
+  
+  <!-- 获取子公司不可用资金-汇总 -->
+  <select id="selectInvalidCapitalTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select sum(t1.amount) amount from c_his_invalid_capital t1
+		where t1.sub_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR}
+		 group by t1.sub_company_id        
+  </select>
+  
+  <!-- 获取分公司不可用资金-汇总 -->
+  <select id="selectBranchCompInvalidCapitalTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select sum(t1.amount) amount from c_his_invalid_capital t1,c_sub_company t2,c_branch_company t3
+		where t1.sub_company_id = t2.id and t2.branch_company_id = t3.id
+        and t2.branch_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR} 
+        group by t2.branch_company_id     
+  </select>
+  
+  <!-- 获取所有子公司 -->
+  <select id="selectSubCompany" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+  	select * from c_sub_company t1,c_user_sub_company_rel t2 where t1.id = t2.sub_company_id 
+  	<if test="id != null">
+        and id  = #{id,jdbcType=BIGINT}
+    </if>
+    <if test="type != null">
+        and type  = #{type,jdbcType=BIGINT}
+    </if>
+    <if test="userId != null">
+        and t2.user_id = #{userId,jdbcType=BIGINT}
+    </if>
+    order by   
+    <if test="orderByType != null">
+        ${orderByType},
+    </if>
+      id
+  </select>
+  
+  <!-- 获取所有子公司-查询导出模板中的所有子公司，不带用户过滤 -->
+  <select id="selectSubCompanyForTemplate" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select * from c_sub_company t 
+      <where>
+          <if test="type != null">
+		      and type  = #{type,jdbcType=BIGINT} 
+		  </if>
+		  <if test="district_id != null">
+		      and t.branch_company_id in (select t1.id from c_branch_company t1 where t1.district_id = #{district_id,jdbcType=BIGINT}) 
+		  </if>
+      </where>
+      order by id
+  </select>
+  
+  <!-- 获取所有分公司 -->
+  <select id="selectcBranchCompany" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+  	select DISTINCT t1.id,t1.name,t5.type 
+  	<if test="id != null">
+        from c_branch_company t1, c_sub_company t5 where t1.id = t5.branch_company_id 
+        and t1.id = #{id,jdbcType=BIGINT} order by t5.type,t5.id
+    </if>
+  	<if test="id == null">
+	  	from c_branch_company t1, c_sub_company t5 where t1.id = t5.branch_company_id and t1.id in (
+	  	select t2.branch_company_id from c_sub_company t2, c_user_sub_company_rel t3 where t2.id = t3.sub_company_id   
+	  	<if test="type != null">
+	        and t2.type = #{type,jdbcType=BIGINT}
+	    </if>
+	     )
+     </if>
+     
+  </select>
+  
+  <!-- 获取分公司所属区域 -->
+  <select id="selectcDistrict" resultType="com.ld.report.bo.FinanceReportBo">
+  	select * from c_district 
+  </select>
+  
+  <!-- 获取收入类型 -->
+  <select id="selectIncomeType" resultType="com.ld.report.bo.FinanceReportBo">
+  	select * from c_income_type 
+  </select>
+  
+  <!-- 获取支出类型 -->
+  <select id="selectCostType" resultType="com.ld.report.bo.FinanceReportBo">
+  	select * from c_cost_type 
+  </select>
+  
+  <!-- 获取不可用资金类型 -->
+  <select id="selectInvalidCapitalType" resultType="com.ld.report.bo.FinanceReportBo">
+  	select * from c_invalid_capital_type 
+  </select>
+  
+  <!-- 所有银行列表 -->
+  <select id="selectBank" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+  	select * from c_bank 
+  	<if test="name != null and name !='' " >
+        where name  = #{name,jdbcType=BIGINT}
+    </if>
+  </select>
+  
+  <!-- 保存银行余额 -->
+  <insert id="insertSubCompBalance" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_sub_company_balance (id, sub_company_id, bank_id, amount, descs,filepath)
+    values (#{id,jdbcType=BIGINT}, #{subCompanyId,jdbcType=BIGINT}, #{bankId,jdbcType=BIGINT}, 
+    #{amount,jdbcType=BIGINT}, #{descs,jdbcType=VARCHAR}, #{filepath,jdbcType=VARCHAR} )
+  </insert>
+  
+  <!-- 删除银行余额 -->
+  <delete id="deleteSubCompBalance" parameterType="com.ld.report.bo.FinanceReportBo" >
+    delete from c_sub_company_balance 
+    <where>
+        <if test="subCompanyId != null">
+	      and sub_company_id = #{subCompanyId,jdbcType=BIGINT} 
+	    </if>
+    </where>
+  </delete>
+  
+  <!-- 保存银行余额历史 -->
+  <insert id="insertSubCompHisBalance" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_sub_company_his_balance (id, sub_company_id, bank_id, amount,descs,filepath, date)
+    values (#{id,jdbcType=BIGINT}, #{subCompanyId,jdbcType=BIGINT}, #{bankId,jdbcType=BIGINT}, 
+         #{amount,jdbcType=BIGINT},#{descs,jdbcType=VARCHAR}, #{filepath,jdbcType=VARCHAR},#{date,jdbcType=DATE})
+  </insert>
+  
+  <!-- 删除银行余额历史 -->
+  <delete id="deleteSubCompHisBalance" parameterType="com.ld.report.bo.FinanceReportBo" >
+    delete from c_sub_company_his_balance 
+    <where>
+        <if test="subCompanyId != null">
+	      and sub_company_id = #{subCompanyId,jdbcType=BIGINT} 
+	    </if>
+	    <if test="dateStr != null">
+	      and date = #{dateStr,jdbcType=VARCHAR}
+	    </if>     
+    </where>
+  </delete>
+  
+  <!-- 保存银行信息 -->
+  <insert id="insertBank" useGeneratedKeys="true" keyProperty="bankId" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_bank (id, name)
+    values (#{bankId,jdbcType=BIGINT}, #{name,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 删除收入 -->
+  <delete id="deleteIncome" parameterType="com.ld.report.bo.FinanceReportBo" >
+    delete from c_income where sub_company_id = #{subCompanyId,jdbcType=BIGINT} and date = #{dateStr,jdbcType=VARCHAR}
+  </delete>
+  
+  <!-- 保存收入 -->
+  <insert id="insertIncome" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_income (id, sub_company_id, income_type_id, name, descs, date, amount)
+    values (#{id,jdbcType=BIGINT}, #{subCompanyId,jdbcType=BIGINT}, #{incomeTypeId,jdbcType=BIGINT},
+            #{name,jdbcType=VARCHAR}, #{descs,jdbcType=VARCHAR}, #{date,jdbcType=DATE}, #{amount,jdbcType=BIGINT})
+  </insert>
+  
+  <!-- 删除支出-->
+  <delete id="deleteCost" parameterType="com.ld.report.bo.FinanceReportBo" >
+    delete from c_cost where sub_company_id = #{subCompanyId,jdbcType=BIGINT} and date = #{dateStr,jdbcType=VARCHAR}
+  </delete>
+  
+  <!-- 保存支出 -->
+  <insert id="insertCost" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_cost (id, sub_company_id, cost_type_id, name, descs, date, amount)
+    values (#{id,jdbcType=BIGINT}, #{subCompanyId,jdbcType=BIGINT}, #{costTypeId,jdbcType=BIGINT},
+            #{name,jdbcType=VARCHAR}, #{descs,jdbcType=VARCHAR}, #{date,jdbcType=DATE}, #{amount,jdbcType=BIGINT})
+  </insert>
+  
+  <!-- 删除不可用资金 -->
+  <delete id="deleteInvalidCapital" parameterType="com.ld.report.bo.FinanceReportBo" >
+    delete from c_invalid_capital 
+    <where>
+        <if test="subCompanyId != null">
+	      and sub_company_id = #{subCompanyId,jdbcType=BIGINT} 
+	    </if>
+    </where>
+  </delete>
+  
+  <!-- 保存不可用资金 -->
+  <insert id="insertInvalidCapital" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_invalid_capital (id, sub_company_id, invalid_capital_type_id, descs, amount, change_amount)
+    values (#{id,jdbcType=BIGINT}, #{subCompanyId,jdbcType=BIGINT}, #{invalidCapitalTypeId,jdbcType=BIGINT},
+            #{descs,jdbcType=VARCHAR}, #{amount,jdbcType=BIGINT}, #{changeAmount,jdbcType=BIGINT})
+  </insert>
+  
+  <!-- 删除不可用资金历史-->
+  <delete id="deleteHisInvalidCapital" parameterType="java.lang.Long" >
+    delete from c_his_invalid_capital 
+    <where>
+        <if test="subCompanyId != null">
+	      and sub_company_id = #{subCompanyId,jdbcType=BIGINT} 
+	    </if>
+	    <if test="dateStr != null">
+	      and date = #{dateStr,jdbcType=VARCHAR}
+	    </if>     
+    </where>
+  </delete>
+  
+  <!-- 保存不可用资金历史 -->
+  <insert id="insertHisInvalidCapital" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_his_invalid_capital (id, sub_company_id, invalid_capital_type_id, descs, date, amount, change_amount)
+    values (#{id,jdbcType=BIGINT}, #{subCompanyId,jdbcType=BIGINT}, #{invalidCapitalTypeId,jdbcType=BIGINT},
+            #{descs,jdbcType=VARCHAR},#{date,jdbcType=DATE}, #{amount,jdbcType=BIGINT}, #{changeAmount,jdbcType=BIGINT})
+  </insert>
+  
+  
+  <!-- 获取子公司最多的银行余额记录 -->
+  <select id="selectMaxSubCompanyBalance" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+  	select count(id) count from c_sub_company_his_balance where date = #{dateStr,jdbcType=VARCHAR} 
+  	group by sub_company_id order by count(id) desc limit 1
+  </select>
+  
+  <!-- 获取短信记录 -->
+  <select id="selectSmsRecord" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+  	select * from c_sms_record      
+  	<where>
+        <if test="dateStr != null">
+	      and date = #{dateStr,jdbcType=VARCHAR}
+	    </if>
+	    <if test="randomCode != null">
+	      and random_code = #{randomCode,jdbcType=VARCHAR}
+	    </if>     
+  </where>
+  </select>
+  
+  <!-- 新增短信记录 -->
+  <insert id="insertSmsRecord" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+  	insert into c_sms_record (id, ${fieldName}, date, random_code)
+    values (#{id,jdbcType=BIGINT}, #{content,jdbcType=VARCHAR},#{date,jdbcType=DATE}, #{randomCode,jdbcType=VARCHAR})
+  </insert>
+  
+  <!-- 修改短信记录 -->
+  <update id="updateSmsRecord" parameterType="com.ld.report.bo.FinanceReportBo">
+  	 update c_sms_record set ${fieldName} = #{content,jdbcType=VARCHAR} where date = #{dateStr,jdbcType=VARCHAR} 
+  </update>
+  
+  <!-- 删除短信记录 -->
+  <delete id="deleteSmsRecord" parameterType="com.ld.report.bo.FinanceReportBo" >
+    delete from c_sms_record where date = #{dateStr,jdbcType=VARCHAR}
+  </delete>
+  
+  <!-- 查询某种类型收入的最大记录数   城市公司 -->
+  <select id="selectMaxSubCompanyIncomeLength" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select count(id) count from ${tableName} where ${fieldName} ${ope} #{incomeTypeId,jdbcType=BIGINT} and date = #{dateStr,jdbcType=VARCHAR} group by sub_company_id order by count(id) desc limit 1  
+  </select>
+  
+  <!-- 查询某种类型收入的最大记录数  区域公司 -->
+  <select id="selectMaxBranchCompanyIncomeLength" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select count(t.id) count from ${tableName} t, c_sub_company t1, c_branch_company t2 where t.sub_company_id =  
+      t1.id and t1.branch_company_id = t2.id and ${fieldName} ${ope} #{incomeTypeId,jdbcType=BIGINT} 
+      and t.date = #{dateStr,jdbcType=VARCHAR} group by t.sub_company_id order by count(t.id) desc limit 1   
+  </select>
+  
+  
+  
+  <!-- 优化查询 -->
+  
+  <!-- 获取子公司银行余额-汇总 全部查询 -->
+  <select id="selectSubCompBalanceTotalAllList" parameterType="java.util.Map" resultType="com.ld.report.bo.FinanceReportBo">
+      select t1.id, sum(t2.amount) amount from c_sub_company t1 
+      left join ${tableName} t2 on t1.id = t2.sub_company_id 
+      where t2.date = #{dateStr,jdbcType=VARCHAR} 
+      and t1.id in 
+      <foreach item="item" index="index" collection="list" open="(" separator="," close=")">  
+	  #{item}  
+	 </foreach>
+      group by t1.id    
+  </select>
+  
+  <!-- 优化查询 -->
+  
+  
+  
+  
+  
+  <!-- 区域公司数据导出 start   -->
+  
+  
+  <!-- 子公司收入-汇总 -->
+  <select id="selectSubCompanyIncomeTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select t2.name, sum(t1.amount) amount,t1.income_type_id incomeTypeId 
+      from c_income t1,c_sub_company t2,c_user_sub_company_rel t3
+      where t1.sub_company_id = t2.id and t1.sub_company_id = t3.sub_company_id
+      and t3.user_id = #{userId,jdbcType=BIGINT} 
+      and t2.branch_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR} 
+      group by t2.name, t1.income_type_id
+  </select>
+  
+  <!-- 子公司支出-汇总 -->
+  <select id="selectSubCompanyCostTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select t2.name, sum(t1.amount) amount,t1.cost_type_id costTypeId 
+      from c_cost t1,c_sub_company t2,c_user_sub_company_rel t3
+      where t1.sub_company_id = t2.id and t1.sub_company_id = t3.sub_company_id
+      and t3.user_id = #{userId,jdbcType=BIGINT} 
+      and t2.branch_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR} 
+      group by t2.name, t1.cost_type_id
+  </select>
+  
+  <!-- 子公司不可用资金-汇总 -->
+  <select id="selectSubCompanyInvalidCapitalTotal" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select t2.name, sum(t1.amount) amount,t1.invalid_capital_type_id invalidCapitalTypeId 
+      from c_his_invalid_capital t1,c_sub_company t2,c_user_sub_company_rel t3
+      where t1.sub_company_id = t2.id and t1.sub_company_id = t3.sub_company_id
+      and t3.user_id = #{userId,jdbcType=BIGINT} 
+      and t2.branch_company_id = #{id,jdbcType=BIGINT} and t1.date = #{dateStr,jdbcType=VARCHAR} 
+      group by t2.name, t1.invalid_capital_type_id
+  </select>
+  
+  <!-- 区域公司数据导出 end   -->
+  
+  <!-- 获取数据自定义sql -->
+  <select id="selectcDataBysql" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      ${sql}
+  </select>
+  
+  <!-- 获取子公司工抵余额 -->
+  <select id="selectSubCompGongdiBalance" parameterType="com.ld.report.bo.FinanceReportBo" resultType="com.ld.report.bo.FinanceReportBo">
+      select t1.sub_company_id, sum(t1.amount) amount from c_gongdi_balance t1 
+      <where>
+          <if test="id != null">
+		      and t1.sub_company_id = #{id,jdbcType=BIGINT}
+		  </if>
+	      <if test="dateStr != null">
+		      and t1.date = #{dateStr,jdbcType=VARCHAR}
+		  </if>     
+	  </where>
+	  group by t1.sub_company_id
+  </select>
+  
+  <!-- 查询数据处理 -->
+  <select id="selectBalanceProcess" resultType="com.ld.report.bo.FinanceReportBo">
+      select * from c_process_status 
+      <where>
+	      <if test="dateStr != null">
+		      and date = #{dateStr,jdbcType=VARCHAR}
+		  </if> 
+		  <if test="subCompanyId != null">
+		      and sub_company_id = #{subCompanyId,jdbcType=BIGINT}
+		  </if>    
+		  <if test="status != null">
+		      and status = #{status,jdbcType=BIGINT}
+		  </if> 
+	  </where>     
+  </select>
+  
+  <!-- 新增数据处理 -->
+  <insert id="insertBalanceProcess" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_process_status (id, sub_company_id, date, status)
+    values (#{id,jdbcType=BIGINT}, #{subCompanyId,jdbcType=BIGINT},#{date,jdbcType=DATE},#{status,jdbcType=BIGINT} )
+  </insert>
+
+  <!-- 修改数据处理 -->
+  <update id="updateBalanceProcess" parameterType="com.ld.report.bo.FinanceReportBo">
+  	 update c_process_status set status = #{status,jdbcType=BIGINT} 
+  	 where sub_company_id = #{subCompanyId,jdbcType=BIGINT} and date = #{dateStr,jdbcType=VARCHAR}
+  </update>
+  
+  <!-- 查询工抵余额 -->
+  <select id="selectGongdiBalance" resultType="com.ld.report.bo.FinanceReportBo">
+      select * from c_gongdi_balance 
+      <where>
+	      <if test="dateStr != null">
+		      and date = #{dateStr,jdbcType=VARCHAR}
+		  </if> 
+		  <if test="subCompanyId != null">
+		      and sub_company_id = #{subCompanyId,jdbcType=BIGINT}
+		  </if>    
+	  </where>     
+  </select>
+  
+  <!-- 新增工抵余额 -->
+  <insert id="insertGongdiBalance" useGeneratedKeys="true" keyProperty="id" parameterType="com.ld.report.bo.FinanceReportBo" >
+    insert into c_gongdi_balance (id, sub_company_id, date, amount)
+    values (#{id,jdbcType=BIGINT}, #{subCompanyId,jdbcType=BIGINT},#{date,jdbcType=DATE},#{amount,jdbcType=DECIMAL} )
+  </insert>
+
+  <!-- 修改工抵余额 -->
+  <update id="updateGongdiBalance" parameterType="com.ld.report.bo.FinanceReportBo">
+  	 update c_gongdi_balance set amount = #{amount,jdbcType=DECIMAL} 
+  	 where sub_company_id = #{subCompanyId,jdbcType=BIGINT} and date = #{dateStr,jdbcType=VARCHAR}
+  </update>
+    
+</mapper>
